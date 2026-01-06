@@ -14,11 +14,21 @@ class Router
         @server.mount_proc path do |req, res|
             folder = content_type == 'text/html' ? 'views' : 'public'
             file_path = File.join(folder, filename)
-            
-            if File.exist?(file_path)
-                res.body = File.read(file_path)
+
+            if !File.exist?(file_path)
+                self.render_404(res, content_path, filename)
+                next
+            end
+
+            body = File.read(file_path)
+
+            req.query.each do |key, value|
+                safe_value = value.to_s.force_encoding('UTF-8')
+                body.gsub!("{{#{key}}}", safe_value)
+                res.body = body
                 res['Content-Type'] = "#{content_type}; charset=utf-8"
-            else
+            end
+            def render_404(res, content_type, filename)
                 res.status = 404
                 res['Content-Type'] = "#{content_type}; charset=utf-8"
                 res.body = "404 not found #{filename}が見つかりません"
